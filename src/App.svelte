@@ -244,10 +244,11 @@
   center={false}
   short={true}
 >
-  <h1>This is the title of the article</h1>
+  <h1>Simulated Life Expectancy Trends in Philly-land</h1>
   <p class="text-big" style="margin-top: 5px">
-    This is a short text description of the article that might take up a couple
-    of lines
+    Epsom Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sequi
+    voluptate sed quisquam inventore quia odio illo maiores cum enim, aspernatur
+    laboriosam amet ipsam, eligendi optio dolor doloribus minus! Dicta, laborum?
   </p>
   <p style="margin-top: 20px">DD MMM YYYY</p>
   <p>
@@ -262,112 +263,19 @@
   </div>
 </Header>
 
-<Filler theme="lightblue" short={true} wide={true} center={false}>
-  <p class="text-big">This is a large, left-aligned text caption</p>
-</Filler>
-
 <Section>
-  <h2>This is a section title</h2>
+  <h2>Introduction</h2>
   <p>
-    This is a short paragraph of text to demonstrate the standard "medium"
-    column width, font size and line spacing of the template.
+    Epsom Lorem ipsum dolor sit amet, consectetur adipisicing elit. Atque
+    minima, quisquam autem fuga unde id vitae expedita iusto blanditiis.
+    Necessitatibus dignissimos labore non atque alias quasi. Quaerat quis cum
+    architecto.
   </p>
-  <p>
-    This is a second short paragraph of text to demonstrate the size of the
-    paragraph spacing in the template.
-  </p>
-  <blockquote class="text-indent">
-    "This is an example of a large embedded quotation."&mdash;A. Person
-  </blockquote>
+
+  <blockquote class="text-indent">"A quotation."&mdash;A. Person</blockquote>
 </Section>
 
 <Divider />
-
-<Section>
-  <h2>Embedded charts or media</h2>
-  <p>
-    Below is an embedded chart. It is set to the same width as the column,
-    "medium" (680px), but could also be "narrow" (540px), "wide" (980px) or
-    "full" width. All options are responsive to fit the width of narrow screens.
-  </p>
-</Section>
-
-{#if data.region.indicators}
-  <Media col="medium" caption="Source: Census Bureau -  ACS 5 year estimates">
-    <div class="chart-sml">
-      <BarChart
-        data={[...data.region.indicators].sort((a, b) => a.pop - b.pop)}
-        xKey="pop"
-        yKey="name"
-        snapTicks={false}
-        xFormatTick={(d) => d / 1e6}
-        xSuffix="m"
-        height={350}
-        padding={{ top: 0, bottom: 15, left: 140, right: 0 }}
-        area={false}
-        title="Population by state, 2020 - North East Region"
-      />
-    </div>
-  </Media>
-{/if}
-
-<Divider />
-
-<Section>
-  <h2>Gridded charts or media</h2>
-  <p>
-    Below is a grid that can contain charts or any other kind of visual media.
-    The grid can fit in a medium, wide or full-width column, and the media width
-    itself can be narrow (min 200px), medium (min 300px), wide (min 500px) or
-    full-width. The grid is responsive, and will re-flow on smaller screens.
-  </p>
-</Section>
-
-{#if data.region.timeseries && data.region.indicators}
-  <Media
-    col="wide"
-    grid="narrow"
-    gap={20}
-    caption="Source: ONS mid-year population estimates."
-  >
-    {#each [...data.region.indicators].sort((a, b) => b.pop - a.pop) as region}
-      <div class="chart-sml">
-        <LineChart
-          data={data.region.timeseries}
-          xKey="year"
-          yKey="value"
-          zKey="code"
-          color="lightgrey"
-          lineWidth={1}
-          xTicks={2}
-          snapTicks={false}
-          yFormatTick={(d) => d / 1e6}
-          ySuffix="m"
-          height={200}
-          padding={{ top: 0, bottom: 20, left: 30, right: 15 }}
-          selected={region.code}
-          area={false}
-          title={region.name}
-        />
-      </div>
-    {/each}
-  </Media>
-{/if}
-
-<Divider />
-
-<Section>
-  <h2>This is a dynamic chart section</h2>
-  <p>
-    The chart below will respond to the captions as you scroll down. The
-    "Scroller" component is set to "splitscreen" mode, which means the captions
-    will be on the left side on larger screens.
-  </p>
-  <p>
-    The interactions are via Javascript functions that are called when each
-    caption scrolls into view.
-  </p>
-</Section>
 
 <Scroller {threshold} bind:id={id['chart']} splitscreen={true}>
   <div slot="background">
@@ -472,53 +380,6 @@
     </section>
   </div>
 </Scroller>
-
-<Divider />
-
-<Section>
-  <h2>This is a full-width chart demo</h2>
-  <p>
-    Below is an example of a media grid where the column with is set to "full".
-    This allows for full width images and charts.
-  </p>
-  <p />
-</Section>
-
-<Media
-  col="full"
-  height={600}
-  caption="This is an optional caption for the above chart or media. It can contain HTML code and <a href='#'>hyperlinks</a>, and wrap onto multiple lines."
->
-  <div class="chart-full">
-    {#if data.district.timeseries}
-      <LineChart
-        data={data.district.timeseries}
-        padding={{ left: 50, right: 150, top: 0, bottom: 0 }}
-        height="500px"
-        xKey="year"
-        yKey="value"
-        zKey="code"
-        color="lightgrey"
-        lineWidth={1}
-        yFormatTick={(d) => (d / 1e6).toFixed(1)}
-        ySuffix="m"
-        select
-        {selected}
-        on:select={doSelect}
-        hover
-        {hovered}
-        on:hover={doHover}
-        highlighted={chartHighlighted}
-        colorSelect="#206095"
-        colorHighlight="#999"
-        area={false}
-        title="Mid-year population by county, 2009 to 2020 - North East region"
-        labels
-        labelKey="name"
-      />
-    {/if}
-  </div>
-</Media>
 
 <Divider />
 
