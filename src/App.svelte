@@ -51,9 +51,6 @@
   let metadata = { district: {}, region: {} };
   let geojson;
 
-  // Element bindings
-  let map = null; // Bound to mapbox 'map' instance once initialised
-
   // State
   let hovered; // Hovered district (chart or map)
   let selected; // Selected district (chart or map)
@@ -74,15 +71,6 @@
   let explore = false; // Allows chart/map interactivity to be toggled on/off
 
   // FUNCTIONS (INCL. SCROLLER ACTIONS)
-
-  // Functions for chart and map on:select and on:hover events
-  function doSelect(e) {
-    console.log(e);
-    selected = e.detail.id;
-  }
-  function doHover(e) {
-    hovered = e.detail.id;
-  }
 
   // Actions for Scroller components
   const actions = {
@@ -274,10 +262,8 @@
               labels
               select={explore}
               selected={explore ? selected : null}
-              on:select={doSelect}
               hover
               {hovered}
-              on:hover={doHover}
               highlighted={explore ? chartHighlighted : []}
               colorSelect="#206095"
               colorHighlight="#999"
