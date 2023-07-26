@@ -718,13 +718,12 @@
 <Divider />
 
 <Section>
-  <h2>How to use this template</h2>
+  <h2>Conclusions</h2>
   <p>
-    You can find the source code and documentation on how to use this template
-    in <a
-      href="https://github.com/Drexel-UHC/uhc-svelte-scrolly-template/"
-      target="_blank">this Github repo</a
-    >.
+    Epsom Lorem ipsum dolor sit amet consectetur adipisicing elit. A magni
+    ducimus amet repellendus cupiditate? Ad optio saepe ducimus. At eveniet ad
+    delectus enim voluptatibus. Quaerat eligendi eaque corrupti possimus
+    molestiae?
   </p>
 </Section>
 
