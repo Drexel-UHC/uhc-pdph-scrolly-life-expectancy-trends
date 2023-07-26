@@ -67,12 +67,10 @@
           .filter((d) => d.parent == region)
           .map((d) => d.code)
       : []; // Array of district codes in 'region'
-  let mapHighlighted = []; // Highlighted district (map only)
   let xKey = 'area'; // xKey for scatter chart
   let yKey = null; // yKey for scatter chart
   let zKey = null; // zKey (color) for scatter chart
   let rKey = null; // rKey (radius) for scatter chart
-  let mapKey = 'density'; // Key for data to be displayed on map
   let explore = false; // Allows chart/map interactivity to be toggled on/off
 
   // FUNCTIONS (INCL. SCROLLER ACTIONS)
