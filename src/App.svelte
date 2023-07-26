@@ -216,23 +216,6 @@
       data[geo].timeseries = timeseries;
     });
   });
-
-  console.log('*************BEFORE getTopo()');
-
-  getTopo(topojson_county_uhc, 'geog').then((geo) => {
-    console.log(`** THEN`);
-    console.log(geo);
-
-    geo.features.sort((a, b) =>
-      a.properties.AREANM.localeCompare(b.properties.AREANM)
-    );
-    geojson = geo;
-  });
-
-  // getTopo(topojson_uhc, 'geog').then((geo) => {
-  //   console.log(`** THEN UHC`);
-  //   console.log(geo);
-  // });
 </script>
 
 <UHCHeader filled={true} center={false} />
