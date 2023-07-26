@@ -79,24 +79,9 @@
   function doSelect(e) {
     console.log(e);
     selected = e.detail.id;
-    if (e.detail.feature) fitById(selected); // Fit map if select event comes from map
   }
   function doHover(e) {
     hovered = e.detail.id;
-  }
-
-  // Functions for map component
-  function fitBounds(bounds) {
-    if (map) {
-      map.fitBounds(bounds, { animate: animation, padding: 30 });
-    }
-  }
-  function fitById(id) {
-    if (geojson && id) {
-      let feature = geojson.features.find((d) => d.properties.AREACD == id);
-      let bounds = bbox(feature.geometry);
-      fitBounds(bounds);
-    }
   }
 
   // Actions for Scroller components
