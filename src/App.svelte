@@ -13,14 +13,12 @@
   import Divider from './layout/Divider.svelte';
   import Toggle from './ui/Toggle.svelte';
   import Arrow from './ui/Arrow.svelte';
-  import Em from './ui/Em.svelte';
 
   // DEMO-SPECIFIC IMPORTS
   import bbox from '@turf/bbox';
   import { getData, setColors, getTopo, getBreaks, getColor } from './utils.js';
   import { colors, units } from './config.js';
   import { ScatterChart, LineChart, BarChart } from '@onsvisual/svelte-charts';
-  import { Map, MapSource, MapLayer, MapTooltip } from '@onsvisual/svelte-maps';
 
   // CORE CONFIG (COLOUR THEMES)
   // Set theme globally (options are 'light', 'dark' or 'lightblue')
@@ -45,23 +43,8 @@
     { original: 'region', file: 'state' },
     { original: 'district', file: 'county' },
   ];
-  const topojson = './data/geo_lad2021.json';
-  const topojson_uhc = './data/geo_lad2021_uhc.json';
-  const topojson_copy = './data/geo_lad2021 copy.json';
-  const topojson_uhc_copy = './data/geo_lad2021_uhc copy.json';
+
   const topojson_county_uhc = './data/geo_counties.json';
-  const mapstyle =
-    'https://bothness.github.io/ons-basemaps/data/style-omt.json';
-  const mapbounds = {
-    uk: [
-      [-9, 49],
-      [2, 61],
-    ],
-    uhc: [
-      [-80.519851, 37.886605], // Southwest corner (latitude, longitude)
-      [-74.689754, 42.516072], // Northeast corner (latitude, longitude)
-    ],
-  };
 
   // Data
   let data = { district: {}, region: {} };
@@ -120,37 +103,6 @@
 
   // Actions for Scroller components
   const actions = {
-    map: {
-      // Actions for <Scroller/> with id="map"
-      map01: () => {
-        // Action for <section/> with data-id="map01"
-        fitBounds(mapbounds.uhc);
-        mapKey = 'density';
-        mapHighlighted = [];
-        explore = false;
-      },
-      map02: () => {
-        fitBounds(mapbounds.uhc);
-        mapKey = 'age_med';
-        mapHighlighted = [];
-        explore = false;
-      },
-      map03: () => {
-        let hl = [...data.district.indicators].sort(
-          (a, b) => b.age_med - a.age_med
-        )[0];
-        fitById(hl.code);
-        mapKey = 'age_med';
-        mapHighlighted = [hl.code];
-        explore = false;
-      },
-      map04: () => {
-        fitBounds(mapbounds.uhc);
-        mapKey = 'age_med';
-        mapHighlighted = [];
-        explore = true;
-      },
-    },
     chart: {
       chart01: () => {
         xKey = 'area';
