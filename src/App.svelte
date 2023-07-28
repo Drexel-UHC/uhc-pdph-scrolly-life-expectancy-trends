@@ -209,11 +209,10 @@
   center={false}
   short={true}
 >
-  <h1>Simulated Life Expectancy Trends in Philly-land</h1>
+  <h1>Scatter Chart Demo</h1>
   <p class="text-big" style="margin-top: 5px">
-    Epsom Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sequi
-    voluptate sed quisquam inventore quia odio illo maiores cum enim, aspernatur
-    laboriosam amet ipsam, eligendi optio dolor doloribus minus! Dicta, laborum?
+    This is a demo of potential transitions, animations and interctions for
+    scatter plots.
   </p>
   <p style="margin-top: 20px">DD MMM YYYY</p>
   <p>
@@ -229,15 +228,18 @@
 </Header>
 
 <Section>
-  <h2>Introduction</h2>
+  <h2>Scatter Plot + Beeswarm</h2>
   <p>
-    Epsom Lorem ipsum dolor sit amet, consectetur adipisicing elit. Atque
-    minima, quisquam autem fuga unde id vitae expedita iusto blanditiis.
-    Necessitatibus dignissimos labore non atque alias quasi. Quaerat quis cum
-    architecto.
+    Scatter plots show data points as dots on a 2D graph for visualizing
+    relationships between continuous variables. Beeswarm plots tackle
+    overplotting by arranging points along a line, avoiding overlap to display
+    data distribution clearly. Both are vital for exploratory data analysis and
+    gaining valuable insights.
   </p>
 
-  <blockquote class="text-indent">"A quotation."&mdash;A. Person</blockquote>
+  <blockquote class="text-indent">
+    "Scatter and swarm, dots reveal the form." &mdash;Edward Tufte
+  </blockquote>
 </Section>
 
 <Divider />
