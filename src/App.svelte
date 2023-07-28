@@ -15,10 +15,9 @@
   import Arrow from './ui/Arrow.svelte';
 
   // DEMO-SPECIFIC IMPORTS
-  import bbox from '@turf/bbox';
-  import { getData, setColors, getTopo, getBreaks, getColor } from './utils.js';
-  import { colors, units } from './config.js';
-  import { ScatterChart, LineChart, BarChart } from '@onsvisual/svelte-charts';
+  import { getData, setColors, getBreaks, getColor } from './utils.js';
+  import { colors } from './config.js';
+  import { ScatterChart } from '@onsvisual/svelte-charts';
 
   // CORE CONFIG (COLOUR THEMES)
   // Set theme globally (options are 'light', 'dark' or 'lightblue')
@@ -43,8 +42,6 @@
     { original: 'region', file: 'state' },
     { original: 'district', file: 'county' },
   ];
-
-  const topojson_county_uhc = './data/geo_counties.json';
 
   // Data
   let data = { district: {}, region: {} };
