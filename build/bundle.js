@@ -662,6 +662,10 @@ var app = (function () {
         else
             dispatch_dev('SvelteDOMSetAttribute', { node, attribute, value });
     }
+    function prop_dev(node, property, value) {
+        node[property] = value;
+        dispatch_dev('SvelteDOMSetProperty', { node, property, value });
+    }
     function set_data_dev(text, data) {
         data = '' + data;
         if (text.wholeText === data)
@@ -895,6 +899,101 @@ var app = (function () {
     // https://github.com/d3/d3-dsv/issues/45
     const fixtz = new Date("2019-01-01T00:00").getHours() || new Date("2019-07-01T00:00").getHours();
 
+    function identity$1(x) {
+      return x;
+    }
+
+    function transform(transform) {
+      if (transform == null) return identity$1;
+      var x0,
+          y0,
+          kx = transform.scale[0],
+          ky = transform.scale[1],
+          dx = transform.translate[0],
+          dy = transform.translate[1];
+      return function(input, i) {
+        if (!i) x0 = y0 = 0;
+        var j = 2, n = input.length, output = new Array(n);
+        output[0] = (x0 += input[0]) * kx + dx;
+        output[1] = (y0 += input[1]) * ky + dy;
+        while (j < n) output[j] = input[j], ++j;
+        return output;
+      };
+    }
+
+    function reverse(array, n) {
+      var t, j = array.length, i = j - n;
+      while (i < --j) t = array[i], array[i++] = array[j], array[j] = t;
+    }
+
+    function feature(topology, o) {
+      if (typeof o === "string") o = topology.objects[o];
+      return o.type === "GeometryCollection"
+          ? {type: "FeatureCollection", features: o.geometries.map(function(o) { return feature$1(topology, o); })}
+          : feature$1(topology, o);
+    }
+
+    function feature$1(topology, o) {
+      var id = o.id,
+          bbox = o.bbox,
+          properties = o.properties == null ? {} : o.properties,
+          geometry = object(topology, o);
+      return id == null && bbox == null ? {type: "Feature", properties: properties, geometry: geometry}
+          : bbox == null ? {type: "Feature", id: id, properties: properties, geometry: geometry}
+          : {type: "Feature", id: id, bbox: bbox, properties: properties, geometry: geometry};
+    }
+
+    function object(topology, o) {
+      var transformPoint = transform(topology.transform),
+          arcs = topology.arcs;
+
+      function arc(i, points) {
+        if (points.length) points.pop();
+        for (var a = arcs[i < 0 ? ~i : i], k = 0, n = a.length; k < n; ++k) {
+          points.push(transformPoint(a[k], k));
+        }
+        if (i < 0) reverse(points, n);
+      }
+
+      function point(p) {
+        return transformPoint(p);
+      }
+
+      function line(arcs) {
+        var points = [];
+        for (var i = 0, n = arcs.length; i < n; ++i) arc(arcs[i], points);
+        if (points.length < 2) points.push(points[0]); // This should never happen per the specification.
+        return points;
+      }
+
+      function ring(arcs) {
+        var points = line(arcs);
+        while (points.length < 4) points.push(points[0]); // This may happen if an arc has only two points.
+        return points;
+      }
+
+      function polygon(arcs) {
+        return arcs.map(ring);
+      }
+
+      function geometry(o) {
+        var type = o.type, coordinates;
+        switch (type) {
+          case "GeometryCollection": return {type: type, geometries: o.geometries.map(geometry)};
+          case "Point": coordinates = point(o.coordinates); break;
+          case "MultiPoint": coordinates = o.coordinates.map(point); break;
+          case "LineString": coordinates = line(o.arcs); break;
+          case "MultiLineString": coordinates = o.arcs.map(line); break;
+          case "Polygon": coordinates = polygon(o.arcs); break;
+          case "MultiPolygon": coordinates = o.arcs.map(polygon); break;
+          default: return null;
+        }
+        return {type: type, coordinates: coordinates};
+      }
+
+      return geometry(o);
+    }
+
     // CORE FUNCTIONS
     function setColors(themes, theme) {
       for (let color in themes[theme]) {
@@ -913,6 +1012,13 @@ var app = (function () {
       let string = await response.text();
     	let data = await csvParse(string, autoType);
       return data;
+    }
+
+    async function getTopo(url, layer) {
+      let response = await fetch(url);
+      let json = await response.json();
+      let geojson = await feature(json, layer);
+      return geojson;
     }
 
     function getColor(value, breaks, colors) {
@@ -7189,7 +7295,7 @@ var app = (function () {
       };
     }
 
-    function object(a, b) {
+    function object$1(a, b) {
       var i = {},
           c = {},
           k;
@@ -7283,7 +7389,7 @@ var app = (function () {
           : b instanceof Date ? date
           : isNumberArray(b) ? numberArray
           : Array.isArray(b) ? genericArray
-          : typeof b.valueOf !== "function" && typeof b.toString !== "function" || isNaN(b) ? object
+          : typeof b.valueOf !== "function" && typeof b.toString !== "function" || isNaN(b) ? object$1
           : interpolateNumber)(a, b);
     }
 
@@ -7305,7 +7411,7 @@ var app = (function () {
 
     var unit = [0, 1];
 
-    function identity$1(x) {
+    function identity$2(x) {
       return x;
     }
 
@@ -7369,14 +7475,14 @@ var app = (function () {
           transform,
           untransform,
           unknown,
-          clamp = identity$1,
+          clamp = identity$2,
           piecewise,
           output,
           input;
 
       function rescale() {
         var n = Math.min(domain.length, range.length);
-        if (clamp !== identity$1) clamp = clamper(domain[0], domain[n - 1]);
+        if (clamp !== identity$2) clamp = clamper(domain[0], domain[n - 1]);
         piecewise = n > 2 ? polymap : bimap;
         output = input = null;
         return scale;
@@ -7403,7 +7509,7 @@ var app = (function () {
       };
 
       scale.clamp = function(_) {
-        return arguments.length ? (clamp = _ ? true : identity$1, rescale()) : clamp !== identity$1;
+        return arguments.length ? (clamp = _ ? true : identity$2, rescale()) : clamp !== identity$2;
       };
 
       scale.interpolate = function(_) {
@@ -7421,7 +7527,7 @@ var app = (function () {
     }
 
     function continuous() {
-      return transformer()(identity$1, identity$1);
+      return transformer()(identity$2, identity$2);
     }
 
     function formatDecimal(x) {
@@ -7577,7 +7683,7 @@ var app = (function () {
       "x": (x) => Math.round(x).toString(16)
     };
 
-    function identity$2(x) {
+    function identity$3(x) {
       return x;
     }
 
@@ -7585,11 +7691,11 @@ var app = (function () {
         prefixes = ["y","z","a","f","p","n","µ","m","","k","M","G","T","P","E","Z","Y"];
 
     function formatLocale(locale) {
-      var group = locale.grouping === undefined || locale.thousands === undefined ? identity$2 : formatGroup(map.call(locale.grouping, Number), locale.thousands + ""),
+      var group = locale.grouping === undefined || locale.thousands === undefined ? identity$3 : formatGroup(map.call(locale.grouping, Number), locale.thousands + ""),
           currencyPrefix = locale.currency === undefined ? "" : locale.currency[0] + "",
           currencySuffix = locale.currency === undefined ? "" : locale.currency[1] + "",
           decimal = locale.decimal === undefined ? "." : locale.decimal + "",
-          numerals = locale.numerals === undefined ? identity$2 : formatNumerals(map.call(locale.numerals, String)),
+          numerals = locale.numerals === undefined ? identity$3 : formatNumerals(map.call(locale.numerals, String)),
           percent = locale.percent === undefined ? "%" : locale.percent + "",
           minus = locale.minus === undefined ? "−" : locale.minus + "",
           nan = locale.nan === undefined ? "NaN" : locale.nan + "";
@@ -7859,11 +7965,11 @@ var app = (function () {
     }
 
     function powish(transform) {
-      var scale = transform(identity$1, identity$1),
+      var scale = transform(identity$2, identity$2),
           exponent = 1;
 
       function rescale() {
-        return exponent === 1 ? transform(identity$1, identity$1)
+        return exponent === 1 ? transform(identity$2, identity$2)
             : exponent === 0.5 ? transform(transformSqrt, transformSquare)
             : transform(transformPow(exponent), transformPow(1 / exponent));
       }
@@ -7922,7 +8028,7 @@ var app = (function () {
     	return 'other';
     }
 
-    function identity$3 (d) {
+    function identity$4 (d) {
     	return d;
     }
 
@@ -7968,7 +8074,7 @@ var app = (function () {
     		return { lift: symlog(constant), ground: symexp(constant), scaleType };
     	}
 
-    	return { lift: identity$3, ground: identity$3, scaleType };
+    	return { lift: identity$4, ground: identity$4, scaleType };
     }
 
     /* --------------------------------------------
@@ -9829,7 +9935,7 @@ var app = (function () {
 
     var unit$1 = [0, 1];
 
-    function identity$4(x) {
+    function identity$5(x) {
       return x;
     }
 
@@ -9893,14 +9999,14 @@ var app = (function () {
           transform,
           untransform,
           unknown,
-          clamp = identity$4,
+          clamp = identity$5,
           piecewise,
           output,
           input;
 
       function rescale() {
         var n = Math.min(domain.length, range.length);
-        if (clamp !== identity$4) clamp = clamper$1(domain[0], domain[n - 1]);
+        if (clamp !== identity$5) clamp = clamper$1(domain[0], domain[n - 1]);
         piecewise = n > 2 ? polymap$1 : bimap$1;
         output = input = null;
         return scale;
@@ -9927,7 +10033,7 @@ var app = (function () {
       };
 
       scale.clamp = function(_) {
-        return arguments.length ? (clamp = _ ? true : identity$4, rescale()) : clamp !== identity$4;
+        return arguments.length ? (clamp = _ ? true : identity$5, rescale()) : clamp !== identity$5;
       };
 
       scale.interpolate = function(_) {
@@ -9945,7 +10051,7 @@ var app = (function () {
     }
 
     function continuous$1() {
-      return transformer$1()(identity$4, identity$4);
+      return transformer$1()(identity$5, identity$5);
     }
 
     function tickFormat$1(start, stop, count, specifier) {
@@ -17595,7 +17701,7 @@ var app = (function () {
 
     /* src\App.svelte generated by Svelte v3.44.1 */
 
-    const { Object: Object_1$1 } = globals;
+    const { Object: Object_1$1, console: console_1$1 } = globals;
     const file$m = "src\\App.svelte";
 
     function get_each_context$6(ctx, list, i) {
@@ -17604,7 +17710,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (215:4) <Arrow color="white" {animation}>
+    // (233:4) <Arrow color="white" {animation}>
     function create_default_slot_3$1(ctx) {
     	let t;
 
@@ -17624,14 +17730,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_3$1.name,
     		type: "slot",
-    		source: "(215:4) <Arrow color=\\\"white\\\" {animation}>",
+    		source: "(233:4) <Arrow color=\\\"white\\\" {animation}>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (193:0) <Header    bgcolor="#206095"    bgfixed={true}    theme="dark"    center={false}    short={true}  >
+    // (212:0) <Header    bgcolor="#206095"    bgfixed={true}    theme="dark"    center={false}    short={true}  >
     function create_default_slot_2$1(ctx) {
     	let h1;
     	let t1;
@@ -17676,10 +17782,10 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			h1 = element("h1");
-    			h1.textContent = "Simulated Life Expectancy Trends in Philly-land";
+    			h1.textContent = "Scatter Chart Demo";
     			t1 = space();
     			p0 = element("p");
-    			p0.textContent = "Epsom Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sequi\r\n    voluptate sed quisquam inventore quia odio illo maiores cum enim, aspernatur\r\n    laboriosam amet ipsam, eligendi optio dolor doloribus minus! Dicta, laborum?";
+    			p0.textContent = "This is a demo of potential transitions, animations and interctions for\r\n    scatter plots.";
     			t3 = space();
     			p1 = element("p");
     			p1.textContent = "DD MMM YYYY";
@@ -17689,15 +17795,15 @@ var app = (function () {
     			t6 = space();
     			div = element("div");
     			create_component(arrow.$$.fragment);
-    			add_location(h1, file$m, 199, 2, 5638);
+    			add_location(h1, file$m, 218, 2, 6104);
     			attr_dev(p0, "class", "text-big");
     			set_style(p0, "margin-top", "5px");
-    			add_location(p0, file$m, 200, 2, 5698);
+    			add_location(p0, file$m, 219, 2, 6135);
     			set_style(p1, "margin-top", "20px");
-    			add_location(p1, file$m, 205, 2, 5993);
-    			add_location(p2, file$m, 206, 2, 6040);
+    			add_location(p1, file$m, 223, 2, 6288);
+    			add_location(p2, file$m, 224, 2, 6335);
     			set_style(div, "margin-top", "90px");
-    			add_location(div, file$m, 213, 2, 6179);
+    			add_location(div, file$m, 231, 2, 6474);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, h1, anchor);
@@ -17763,14 +17869,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_2$1.name,
     		type: "slot",
-    		source: "(193:0) <Header    bgcolor=\\\"#206095\\\"    bgfixed={true}    theme=\\\"dark\\\"    center={false}    short={true}  >",
+    		source: "(212:0) <Header    bgcolor=\\\"#206095\\\"    bgfixed={true}    theme=\\\"dark\\\"    center={false}    short={true}  >",
     		ctx
     	});
 
     	return block;
     }
 
-    // (219:0) <Section>
+    // (237:0) <Section>
     function create_default_slot_1$1(ctx) {
     	let h2;
     	let t1;
@@ -17781,17 +17887,17 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			h2 = element("h2");
-    			h2.textContent = "Introduction";
+    			h2.textContent = "Scatter Plot + Beeswarm";
     			t1 = space();
     			p = element("p");
-    			p.textContent = "Epsom Lorem ipsum dolor sit amet, consectetur adipisicing elit. Atque\r\n    minima, quisquam autem fuga unde id vitae expedita iusto blanditiis.\r\n    Necessitatibus dignissimos labore non atque alias quasi. Quaerat quis cum\r\n    architecto.";
+    			p.textContent = "Scatter plots show data points as dots on a 2D graph for visualizing\r\n    relationships between continuous variables. Beeswarm plots tackle\r\n    overplotting by arranging points along a line, avoiding overlap to display\r\n    data distribution clearly. Both are vital for exploratory data analysis and\r\n    gaining valuable insights.";
     			t3 = space();
     			blockquote = element("blockquote");
-    			blockquote.textContent = "\"A quotation.\"—A. Person";
-    			add_location(h2, file$m, 219, 2, 6310);
-    			add_location(p, file$m, 220, 2, 6335);
+    			blockquote.textContent = "\"Scatter and swarm, dots reveal the form.\" —Edward Tufte";
+    			add_location(h2, file$m, 237, 2, 6605);
+    			add_location(p, file$m, 238, 2, 6641);
     			attr_dev(blockquote, "class", "text-indent");
-    			add_location(blockquote, file$m, 227, 2, 6597);
+    			add_location(blockquote, file$m, 246, 2, 6996);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, h2, anchor);
@@ -17813,14 +17919,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_1$1.name,
     		type: "slot",
-    		source: "(219:0) <Section>",
+    		source: "(237:0) <Section>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (237:8) {#if data.district.indicators && metadata.region.lookup}
+    // (258:8) {#if data.district.indicators && metadata.region.lookup}
     function create_if_block_1$7(ctx) {
     	let div;
     	let scatterchart;
@@ -17830,11 +17936,11 @@ var app = (function () {
     			props: {
     				height: "calc(100vh - 150px)",
     				data: /*data*/ ctx[4].district.indicators.map(/*func*/ ctx[16]),
-    				colors: /*explore*/ ctx[9] ? ['lightgrey'] : colors.cat,
-    				xKey: /*xKey*/ ctx[5],
-    				yKey: /*yKey*/ ctx[6],
-    				zKey: /*zKey*/ ctx[7],
-    				rKey: /*rKey*/ ctx[8],
+    				colors: /*explore*/ ctx[10] ? ['lightgrey'] : colors.cat,
+    				xKey: /*xKey*/ ctx[6],
+    				yKey: /*yKey*/ ctx[7],
+    				zKey: /*zKey*/ ctx[8],
+    				rKey: /*rKey*/ ctx[9],
     				idKey: "code",
     				labelKey: "name",
     				r: [3, 10],
@@ -17843,13 +17949,13 @@ var app = (function () {
     				xFormatTick: func_1,
     				xSuffix: " sq.km",
     				yFormatTick: func_2,
-    				legend: /*zKey*/ ctx[7] != null,
+    				legend: /*zKey*/ ctx[8] != null,
     				labels: true,
-    				select: /*explore*/ ctx[9],
-    				selected: /*explore*/ ctx[9] ? /*selected*/ ctx[2] : null,
+    				select: /*explore*/ ctx[10],
+    				selected: /*explore*/ ctx[10] ? /*selected*/ ctx[2] : null,
     				hover: true,
     				hovered: /*hovered*/ ctx[12],
-    				highlighted: /*explore*/ ctx[9] ? /*chartHighlighted*/ ctx[10] : [],
+    				highlighted: /*explore*/ ctx[10] ? /*chartHighlighted*/ ctx[11] : [],
     				colorSelect: "#206095",
     				colorHighlight: "#999",
     				overlayFill: true,
@@ -17863,7 +17969,7 @@ var app = (function () {
     			div = element("div");
     			create_component(scatterchart.$$.fragment);
     			attr_dev(div, "class", "chart svelte-xshzp7");
-    			add_location(div, file$m, 237, 10, 6927);
+    			add_location(div, file$m, 258, 10, 7368);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -17873,15 +17979,15 @@ var app = (function () {
     		p: function update(ctx, dirty) {
     			const scatterchart_changes = {};
     			if (dirty & /*data, metadata*/ 18) scatterchart_changes.data = /*data*/ ctx[4].district.indicators.map(/*func*/ ctx[16]);
-    			if (dirty & /*explore*/ 512) scatterchart_changes.colors = /*explore*/ ctx[9] ? ['lightgrey'] : colors.cat;
-    			if (dirty & /*xKey*/ 32) scatterchart_changes.xKey = /*xKey*/ ctx[5];
-    			if (dirty & /*yKey*/ 64) scatterchart_changes.yKey = /*yKey*/ ctx[6];
-    			if (dirty & /*zKey*/ 128) scatterchart_changes.zKey = /*zKey*/ ctx[7];
-    			if (dirty & /*rKey*/ 256) scatterchart_changes.rKey = /*rKey*/ ctx[8];
-    			if (dirty & /*zKey*/ 128) scatterchart_changes.legend = /*zKey*/ ctx[7] != null;
-    			if (dirty & /*explore*/ 512) scatterchart_changes.select = /*explore*/ ctx[9];
-    			if (dirty & /*explore, selected*/ 516) scatterchart_changes.selected = /*explore*/ ctx[9] ? /*selected*/ ctx[2] : null;
-    			if (dirty & /*explore, chartHighlighted*/ 1536) scatterchart_changes.highlighted = /*explore*/ ctx[9] ? /*chartHighlighted*/ ctx[10] : [];
+    			if (dirty & /*explore*/ 1024) scatterchart_changes.colors = /*explore*/ ctx[10] ? ['lightgrey'] : colors.cat;
+    			if (dirty & /*xKey*/ 64) scatterchart_changes.xKey = /*xKey*/ ctx[6];
+    			if (dirty & /*yKey*/ 128) scatterchart_changes.yKey = /*yKey*/ ctx[7];
+    			if (dirty & /*zKey*/ 256) scatterchart_changes.zKey = /*zKey*/ ctx[8];
+    			if (dirty & /*rKey*/ 512) scatterchart_changes.rKey = /*rKey*/ ctx[9];
+    			if (dirty & /*zKey*/ 256) scatterchart_changes.legend = /*zKey*/ ctx[8] != null;
+    			if (dirty & /*explore*/ 1024) scatterchart_changes.select = /*explore*/ ctx[10];
+    			if (dirty & /*explore, selected*/ 1028) scatterchart_changes.selected = /*explore*/ ctx[10] ? /*selected*/ ctx[2] : null;
+    			if (dirty & /*explore, chartHighlighted*/ 3072) scatterchart_changes.highlighted = /*explore*/ ctx[10] ? /*chartHighlighted*/ ctx[11] : [];
     			if (dirty & /*animation*/ 8) scatterchart_changes.animation = /*animation*/ ctx[3];
     			scatterchart.$set(scatterchart_changes);
     		},
@@ -17904,14 +18010,14 @@ var app = (function () {
     		block,
     		id: create_if_block_1$7.name,
     		type: "if",
-    		source: "(237:8) {#if data.district.indicators && metadata.region.lookup}",
+    		source: "(258:8) {#if data.district.indicators && metadata.region.lookup}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (234:2) 
+    // (255:2) 
     function create_background_slot(ctx) {
     	let div1;
     	let figure;
@@ -17926,10 +18032,10 @@ var app = (function () {
     			div0 = element("div");
     			if (if_block) if_block.c();
     			attr_dev(div0, "class", "col-wide height-full");
-    			add_location(div0, file$m, 235, 6, 6815);
-    			add_location(figure, file$m, 234, 4, 6799);
+    			add_location(div0, file$m, 256, 6, 7256);
+    			add_location(figure, file$m, 255, 4, 7240);
     			attr_dev(div1, "slot", "background");
-    			add_location(div1, file$m, 233, 2, 6770);
+    			add_location(div1, file$m, 254, 2, 7211);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div1, anchor);
@@ -17981,14 +18087,14 @@ var app = (function () {
     		block,
     		id: create_background_slot.name,
     		type: "slot",
-    		source: "(234:2) ",
+    		source: "(255:2) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (317:8) {#if geojson}
+    // (338:8) {#if geojson}
     function create_if_block$c(ctx) {
     	let p;
     	let select;
@@ -17996,7 +18102,7 @@ var app = (function () {
     	let option_value_value;
     	let mounted;
     	let dispose;
-    	let each_value = /*geojson*/ ctx[11].features;
+    	let each_value = /*geojson*/ ctx[5].features;
     	validate_each_argument(each_value);
     	let each_blocks = [];
 
@@ -18017,11 +18123,11 @@ var app = (function () {
 
     			option.__value = option_value_value = null;
     			option.value = option.__value;
-    			add_location(option, file$m, 320, 14, 9594);
+    			add_location(option, file$m, 341, 14, 10035);
     			attr_dev(select, "class", "svelte-xshzp7");
     			if (/*selected*/ ctx[2] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[15].call(select));
-    			add_location(select, file$m, 319, 12, 9548);
-    			add_location(p, file$m, 317, 10, 9478);
+    			add_location(select, file$m, 340, 12, 9989);
+    			add_location(p, file$m, 338, 10, 9919);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, p, anchor);
@@ -18040,8 +18146,8 @@ var app = (function () {
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*geojson*/ 2048) {
-    				each_value = /*geojson*/ ctx[11].features;
+    			if (dirty & /*geojson*/ 32) {
+    				each_value = /*geojson*/ ctx[5].features;
     				validate_each_argument(each_value);
     				let i;
 
@@ -18064,7 +18170,7 @@ var app = (function () {
     				each_blocks.length = each_value.length;
     			}
 
-    			if (dirty & /*selected, geojson*/ 2052) {
+    			if (dirty & /*selected, geojson*/ 36) {
     				select_option(select, /*selected*/ ctx[2]);
     			}
     		},
@@ -18080,14 +18186,14 @@ var app = (function () {
     		block,
     		id: create_if_block$c.name,
     		type: "if",
-    		source: "(317:8) {#if geojson}",
+    		source: "(338:8) {#if geojson}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (322:14) {#each geojson.features as place}
+    // (343:14) {#each geojson.features as place}
     function create_each_block$6(ctx) {
     	let option;
     	let t0_value = /*place*/ ctx[23].properties.AREANM + "";
@@ -18102,14 +18208,21 @@ var app = (function () {
     			t1 = space();
     			option.__value = option_value_value = /*place*/ ctx[23].properties.AREACD;
     			option.value = option.__value;
-    			add_location(option, file$m, 322, 16, 9701);
+    			add_location(option, file$m, 343, 16, 10142);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
     			append_dev(option, t0);
     			append_dev(option, t1);
     		},
-    		p: noop,
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*geojson*/ 32 && t0_value !== (t0_value = /*place*/ ctx[23].properties.AREANM + "")) set_data_dev(t0, t0_value);
+
+    			if (dirty & /*geojson*/ 32 && option_value_value !== (option_value_value = /*place*/ ctx[23].properties.AREACD)) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(option);
     		}
@@ -18119,16 +18232,16 @@ var app = (function () {
     		block,
     		id: create_each_block$6.name,
     		type: "each",
-    		source: "(322:14) {#each geojson.features as place}",
+    		source: "(343:14) {#each geojson.features as place}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (276:2) 
+    // (297:2) 
     function create_foreground_slot(ctx) {
-    	let div5;
+    	let div6;
     	let section0;
     	let div0;
     	let p0;
@@ -18163,11 +18276,15 @@ var app = (function () {
     	let t17;
     	let p4;
     	let t19;
-    	let if_block = /*geojson*/ ctx[11] && create_if_block$c(ctx);
+    	let t20;
+    	let section5;
+    	let div5;
+    	let p5;
+    	let if_block = /*geojson*/ ctx[5] && create_if_block$c(ctx);
 
     	const block = {
     		c: function create() {
-    			div5 = element("div");
+    			div6 = element("div");
     			section0 = element("section");
     			div0 = element("div");
     			p0 = element("p");
@@ -18209,82 +18326,107 @@ var app = (function () {
     			p4.textContent = "Use the selection box below or click on the chart to select a county.\r\n          The chart will also highlight the other counties in the same state.";
     			t19 = space();
     			if (if_block) if_block.c();
-    			add_location(strong0, file$m, 279, 31, 8247);
-    			add_location(p0, file$m, 278, 8, 8211);
+    			t20 = space();
+    			section5 = element("section");
+    			div5 = element("div");
+    			p5 = element("p");
+    			p5.textContent = "The vertical axis now shows median age.";
+    			add_location(strong0, file$m, 300, 31, 8688);
+    			add_location(p0, file$m, 299, 8, 8652);
     			attr_dev(div0, "class", "col-medium");
-    			add_location(div0, file$m, 277, 6, 8177);
+    			add_location(div0, file$m, 298, 6, 8618);
     			attr_dev(section0, "data-id", "chart01");
-    			add_location(section0, file$m, 276, 4, 8142);
-    			add_location(strong1, file$m, 288, 46, 8585);
-    			add_location(p1, file$m, 287, 8, 8534);
+    			add_location(section0, file$m, 297, 4, 8583);
+    			add_location(strong1, file$m, 309, 46, 9026);
+    			add_location(p1, file$m, 308, 8, 8975);
     			attr_dev(div1, "class", "col-medium");
-    			add_location(div1, file$m, 286, 6, 8500);
+    			add_location(div1, file$m, 307, 6, 8941);
     			attr_dev(section1, "data-id", "chart02");
-    			add_location(section1, file$m, 285, 4, 8465);
-    			add_location(strong2, file$m, 296, 38, 8806);
-    			add_location(p2, file$m, 295, 8, 8763);
+    			add_location(section1, file$m, 306, 4, 8906);
+    			add_location(strong2, file$m, 317, 38, 9247);
+    			add_location(p2, file$m, 316, 8, 9204);
     			attr_dev(div2, "class", "col-medium");
-    			add_location(div2, file$m, 294, 6, 8729);
+    			add_location(div2, file$m, 315, 6, 9170);
     			attr_dev(section2, "data-id", "chart03");
-    			add_location(section2, file$m, 293, 4, 8694);
-    			add_location(strong3, file$m, 304, 46, 9053);
-    			add_location(p3, file$m, 303, 8, 9002);
+    			add_location(section2, file$m, 314, 4, 9135);
+    			add_location(strong3, file$m, 325, 46, 9494);
+    			add_location(p3, file$m, 324, 8, 9443);
     			attr_dev(div3, "class", "col-medium");
-    			add_location(div3, file$m, 302, 6, 8968);
+    			add_location(div3, file$m, 323, 6, 9409);
     			attr_dev(section3, "data-id", "chart04");
-    			add_location(section3, file$m, 301, 4, 8933);
-    			add_location(h3, file$m, 311, 8, 9232);
-    			add_location(p4, file$m, 312, 8, 9266);
+    			add_location(section3, file$m, 322, 4, 9374);
+    			add_location(h3, file$m, 332, 8, 9673);
+    			add_location(p4, file$m, 333, 8, 9707);
     			attr_dev(div4, "class", "col-medium");
-    			add_location(div4, file$m, 310, 6, 9198);
+    			add_location(div4, file$m, 331, 6, 9639);
     			attr_dev(section4, "data-id", "chart05");
-    			add_location(section4, file$m, 309, 4, 9163);
-    			attr_dev(div5, "slot", "foreground");
-    			add_location(div5, file$m, 275, 2, 8113);
+    			add_location(section4, file$m, 330, 4, 9604);
+    			add_location(p5, file$m, 354, 8, 10436);
+    			attr_dev(div5, "class", "col-medium");
+    			add_location(div5, file$m, 353, 6, 10402);
+    			attr_dev(section5, "data-id", "chart06");
+    			add_location(section5, file$m, 352, 4, 10367);
+    			attr_dev(div6, "slot", "foreground");
+    			add_location(div6, file$m, 296, 2, 8554);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, div5, anchor);
-    			append_dev(div5, section0);
+    			insert_dev(target, div6, anchor);
+    			append_dev(div6, section0);
     			append_dev(section0, div0);
     			append_dev(div0, p0);
     			append_dev(p0, t0);
     			append_dev(p0, strong0);
     			append_dev(p0, t2);
-    			append_dev(div5, t3);
-    			append_dev(div5, section1);
+    			append_dev(div6, t3);
+    			append_dev(div6, section1);
     			append_dev(section1, div1);
     			append_dev(div1, p1);
     			append_dev(p1, t4);
     			append_dev(p1, strong1);
     			append_dev(p1, t6);
-    			append_dev(div5, t7);
-    			append_dev(div5, section2);
+    			append_dev(div6, t7);
+    			append_dev(div6, section2);
     			append_dev(section2, div2);
     			append_dev(div2, p2);
     			append_dev(p2, t8);
     			append_dev(p2, strong2);
     			append_dev(p2, t10);
-    			append_dev(div5, t11);
-    			append_dev(div5, section3);
+    			append_dev(div6, t11);
+    			append_dev(div6, section3);
     			append_dev(section3, div3);
     			append_dev(div3, p3);
     			append_dev(p3, t12);
     			append_dev(p3, strong3);
     			append_dev(p3, t14);
-    			append_dev(div5, t15);
-    			append_dev(div5, section4);
+    			append_dev(div6, t15);
+    			append_dev(div6, section4);
     			append_dev(section4, div4);
     			append_dev(div4, h3);
     			append_dev(div4, t17);
     			append_dev(div4, p4);
     			append_dev(div4, t19);
     			if (if_block) if_block.m(div4, null);
+    			append_dev(div6, t20);
+    			append_dev(div6, section5);
+    			append_dev(section5, div5);
+    			append_dev(div5, p5);
     		},
     		p: function update(ctx, dirty) {
-    			if (/*geojson*/ ctx[11]) if_block.p(ctx, dirty);
+    			if (/*geojson*/ ctx[5]) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block$c(ctx);
+    					if_block.c();
+    					if_block.m(div4, null);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div5);
+    			if (detaching) detach_dev(div6);
     			if (if_block) if_block.d();
     		}
     	};
@@ -18293,14 +18435,14 @@ var app = (function () {
     		block,
     		id: create_foreground_slot.name,
     		type: "slot",
-    		source: "(276:2) ",
+    		source: "(297:2) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (337:0) <Section>
+    // (363:0) <Section>
     function create_default_slot$1(ctx) {
     	let h2;
     	let t1;
@@ -18313,8 +18455,8 @@ var app = (function () {
     			t1 = space();
     			p = element("p");
     			p.textContent = "Epsom Lorem ipsum dolor sit amet consectetur adipisicing elit. A magni\r\n    ducimus amet repellendus cupiditate? Ad optio saepe ducimus. At eveniet ad\r\n    delectus enim voluptatibus. Quaerat eligendi eaque corrupti possimus\r\n    molestiae?";
-    			add_location(h2, file$m, 337, 2, 9975);
-    			add_location(p, file$m, 338, 2, 9999);
+    			add_location(h2, file$m, 363, 2, 10567);
+    			add_location(p, file$m, 364, 2, 10591);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, h2, anchor);
@@ -18332,7 +18474,7 @@ var app = (function () {
     		block,
     		id: create_default_slot$1.name,
     		type: "slot",
-    		source: "(337:0) <Section>",
+    		source: "(363:0) <Section>",
     		ctx
     	});
 
@@ -18474,7 +18616,7 @@ var app = (function () {
     			section0.$set(section0_changes);
     			const scroller_changes = {};
 
-    			if (dirty & /*$$scope, selected, data, metadata, explore, xKey, yKey, zKey, rKey, chartHighlighted, animation*/ 67110910) {
+    			if (dirty & /*$$scope, selected, geojson, data, metadata, explore, xKey, yKey, zKey, rKey, chartHighlighted, animation*/ 67112958) {
     				scroller_changes.$$scope = { dirty, ctx };
     			}
 
@@ -18547,6 +18689,7 @@ var app = (function () {
     }
 
     const threshold = 0.65;
+    const topojson_county_uhc = './data/geo_counties.json';
     const func_1 = d => d.toLocaleString();
     const func_2 = d => d.toLocaleString();
 
@@ -18597,39 +18740,46 @@ var app = (function () {
     	const actions = {
     		chart: {
     			chart01: () => {
-    				$$invalidate(5, xKey = 'area');
-    				$$invalidate(6, yKey = null);
-    				$$invalidate(7, zKey = null);
-    				$$invalidate(8, rKey = null);
-    				$$invalidate(9, explore = false);
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = null);
+    				$$invalidate(8, zKey = null);
+    				$$invalidate(9, rKey = null);
+    				$$invalidate(10, explore = false);
     			},
     			chart02: () => {
-    				$$invalidate(5, xKey = 'area');
-    				$$invalidate(6, yKey = null);
-    				$$invalidate(7, zKey = null);
-    				$$invalidate(8, rKey = 'pop');
-    				$$invalidate(9, explore = false);
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = null);
+    				$$invalidate(8, zKey = null);
+    				$$invalidate(9, rKey = 'pop');
+    				$$invalidate(10, explore = false);
     			},
     			chart03: () => {
-    				$$invalidate(5, xKey = 'area');
-    				$$invalidate(6, yKey = 'density');
-    				$$invalidate(7, zKey = null);
-    				$$invalidate(8, rKey = 'pop');
-    				$$invalidate(9, explore = false);
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = 'density');
+    				$$invalidate(8, zKey = null);
+    				$$invalidate(9, rKey = 'pop');
+    				$$invalidate(10, explore = false);
     			},
     			chart04: () => {
-    				$$invalidate(5, xKey = 'area');
-    				$$invalidate(6, yKey = 'density');
-    				$$invalidate(7, zKey = 'parent_name');
-    				$$invalidate(8, rKey = 'pop');
-    				$$invalidate(9, explore = false);
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = 'density');
+    				$$invalidate(8, zKey = 'parent_name');
+    				$$invalidate(9, rKey = 'pop');
+    				$$invalidate(10, explore = false);
     			},
     			chart05: () => {
-    				$$invalidate(5, xKey = 'area');
-    				$$invalidate(6, yKey = 'density');
-    				$$invalidate(7, zKey = null);
-    				$$invalidate(8, rKey = 'pop');
-    				$$invalidate(9, explore = true);
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = 'density');
+    				$$invalidate(8, zKey = null);
+    				$$invalidate(9, rKey = 'pop');
+    				$$invalidate(10, explore = true);
+    			},
+    			chart06: () => {
+    				$$invalidate(6, xKey = 'area');
+    				$$invalidate(7, yKey = 'age_med');
+    				$$invalidate(8, zKey = null);
+    				$$invalidate(9, rKey = null);
+    				$$invalidate(10, explore = true);
     			}
     		}
     	};
@@ -18705,10 +18855,17 @@ var app = (function () {
     		});
     	});
 
+    	getTopo(topojson_county_uhc, 'geog').then(geo => {
+    		console.log(`** THEN`);
+    		console.log(geo);
+    		geo.features.sort((a, b) => a.properties.AREANM.localeCompare(b.properties.AREANM));
+    		$$invalidate(5, geojson = geo);
+    	});
+
     	const writable_props = [];
 
     	Object_1$1.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console_1$1.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
     	function toggle_checked_binding(value) {
@@ -18719,7 +18876,7 @@ var app = (function () {
     	function select_change_handler() {
     		selected = select_value(this);
     		$$invalidate(2, selected);
-    		$$invalidate(11, geojson);
+    		$$invalidate(5, geojson);
     	}
 
     	const func = d => ({
@@ -18751,6 +18908,7 @@ var app = (function () {
     		Arrow,
     		getData,
     		setColors,
+    		getTopo,
     		getBreaks,
     		getColor,
     		colors,
@@ -18761,6 +18919,7 @@ var app = (function () {
     		id,
     		idPrev,
     		dataset_named,
+    		topojson_county_uhc,
     		data,
     		metadata,
     		geojson,
@@ -18784,16 +18943,16 @@ var app = (function () {
     		if ('idPrev' in $$props) idPrev = $$props.idPrev;
     		if ('data' in $$props) $$invalidate(4, data = $$props.data);
     		if ('metadata' in $$props) $$invalidate(1, metadata = $$props.metadata);
-    		if ('geojson' in $$props) $$invalidate(11, geojson = $$props.geojson);
+    		if ('geojson' in $$props) $$invalidate(5, geojson = $$props.geojson);
     		if ('hovered' in $$props) $$invalidate(12, hovered = $$props.hovered);
     		if ('selected' in $$props) $$invalidate(2, selected = $$props.selected);
-    		if ('xKey' in $$props) $$invalidate(5, xKey = $$props.xKey);
-    		if ('yKey' in $$props) $$invalidate(6, yKey = $$props.yKey);
-    		if ('zKey' in $$props) $$invalidate(7, zKey = $$props.zKey);
-    		if ('rKey' in $$props) $$invalidate(8, rKey = $$props.rKey);
-    		if ('explore' in $$props) $$invalidate(9, explore = $$props.explore);
+    		if ('xKey' in $$props) $$invalidate(6, xKey = $$props.xKey);
+    		if ('yKey' in $$props) $$invalidate(7, yKey = $$props.yKey);
+    		if ('zKey' in $$props) $$invalidate(8, zKey = $$props.zKey);
+    		if ('rKey' in $$props) $$invalidate(9, rKey = $$props.rKey);
+    		if ('explore' in $$props) $$invalidate(10, explore = $$props.explore);
     		if ('region' in $$props) $$invalidate(13, region = $$props.region);
-    		if ('chartHighlighted' in $$props) $$invalidate(10, chartHighlighted = $$props.chartHighlighted);
+    		if ('chartHighlighted' in $$props) $$invalidate(11, chartHighlighted = $$props.chartHighlighted);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -18808,7 +18967,7 @@ var app = (function () {
     		}
 
     		if ($$self.$$.dirty & /*metadata, region*/ 8194) {
-    			 $$invalidate(10, chartHighlighted = metadata.district.array && region
+    			 $$invalidate(11, chartHighlighted = metadata.district.array && region
     			? metadata.district.array.filter(d => d.parent == region).map(d => d.code)
     			: []); // Array of district codes in 'region'
     		}
@@ -18824,13 +18983,13 @@ var app = (function () {
     		selected,
     		animation,
     		data,
+    		geojson,
     		xKey,
     		yKey,
     		zKey,
     		rKey,
     		explore,
     		chartHighlighted,
-    		geojson,
     		hovered,
     		region,
     		toggle_checked_binding,
