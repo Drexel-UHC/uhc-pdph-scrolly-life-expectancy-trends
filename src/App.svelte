@@ -15,7 +15,7 @@
   import Arrow from './ui/Arrow.svelte';
 
   // DEMO-SPECIFIC IMPORTS
-  import { getData, setColors, getBreaks, getColor } from './utils.js';
+  import { getData, setColors, getTopo, getBreaks, getColor } from './utils.js';
   import { colors } from './config.js';
   import { ScatterChart } from '@onsvisual/svelte-charts';
 
@@ -42,6 +42,8 @@
     { original: 'region', file: 'state' },
     { original: 'district', file: 'county' },
   ];
+
+  const topojson_county_uhc = './data/geo_counties.json';
 
   // Data
   let data = { district: {}, region: {} };
@@ -185,6 +187,16 @@
       });
       data[geo].timeseries = timeseries;
     });
+  });
+
+  getTopo(topojson_county_uhc, 'geog').then((geo) => {
+    console.log(`** THEN`);
+    console.log(geo);
+
+    geo.features.sort((a, b) =>
+      a.properties.AREANM.localeCompare(b.properties.AREANM)
+    );
+    geojson = geo;
   });
 </script>
 
