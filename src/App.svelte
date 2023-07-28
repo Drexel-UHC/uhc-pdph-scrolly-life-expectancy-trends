@@ -109,6 +109,13 @@
         rKey = 'pop';
         explore = true;
       },
+      chart06: () => {
+        xKey = 'area';
+        yKey = 'age_med';
+        zKey = null;
+        rKey = null;
+        explore = true;
+      },
     },
   };
 
@@ -341,6 +348,11 @@
             </select>
           </p>
         {/if}
+      </div>
+    </section>
+    <section data-id="chart06">
+      <div class="col-medium">
+        <p>The vertical axis now shows median age.</p>
       </div>
     </section>
   </div>
